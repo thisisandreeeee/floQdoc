@@ -1,0 +1,6 @@
+Flask==0.12
+Flask-Ask==0.8.7
+gevent==1.2.1
+greenlet==0.4.12
+Jinja2==2.9.5
+requests==2.13.0
