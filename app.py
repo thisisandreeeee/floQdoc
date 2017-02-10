@@ -1,7 +1,7 @@
 from __future__ import print_function
 from flask import Flask, render_template, url_for, request
 from gevent.wsgi import WSGIServer
-from settings import TOKEN_FILE
+from settings import TOKEN_FILE, LOBBY_ID, FLOCK_PORT, ALEXA_PORT
 from creds import APP_ID, APP_SECRET, BOT_USER_ID, BOT_TOKEN
 from pprint import pprint
 import json
@@ -23,7 +23,7 @@ def _send_message(recipient, message):
     payload = {
         'to': recipient,
         'text': message,
-        'token': tokens[recipient]
+        'token': BOT_TOKEN
     }
     r = requests.post('https://api.flock.co/v1/chat.sendMessage', data=payload)
     print(r.status_code, r.json())
@@ -54,16 +54,16 @@ def events():
     # slash events
     elif event_name == 'client.slashCommand':
         if data['command'] == 'ping':
-            _send_message(data['userId'], 'pong')
+            _send_message(LOBBY_ID, 'pong')
 
     return event_name
 
 @app.route("/ready")
 def ready():
+    # users are redirected here after install, we can show a config page here
     return "installed"
 
 if __name__=="__main__":
-    PORT = 5000
-    server = WSGIServer(("", PORT), app)
-    print('Serving on port', PORT)
+    server = WSGIServer(("", FLOCK_PORT), app)
+    print('Serving on port', FLOCK_PORT)
     server.serve_forever()
