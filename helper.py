@@ -71,7 +71,7 @@ def get_remind():
     return reminds
 
 def save_and_update_remind(remind_data):
-    json.dump(remind_data, open(REMIND_FILE, 'w'), indent=4, default = json_serial)
+    json.dump(remind_data, open(REMIND_FILE, 'w'), indent=4)
 
 
 def create_flockml(asker_id, asker_name, question_title, ask_url):
