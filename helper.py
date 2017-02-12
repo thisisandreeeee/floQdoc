@@ -5,6 +5,7 @@ from pprint import pprint
 import json
 import requests
 import os
+import datetime
 
 def save_credentials(user_id, token):
     tokens = {}
@@ -64,6 +65,14 @@ def get_groups():
     groups['by_name'] = groups_by_name
     open(GROUP_FILE, 'w').write(json.dumps(groups, indent=4))
     return groups
+
+def get_remind():
+    reminds = json.load(open(REMIND_FILE).read())
+    return reminds
+
+def save_and_update_remind(remind_data):
+    json.dump(remind_data, open(REMIND_FILE, 'w'), indent=4, default = json_serial)
+
 
 def create_flockml(asker_id, asker_name, question_title, ask_url):
     start = '<flockml>'

@@ -9,6 +9,8 @@ from instruct import instructions
 from pyflock import FlockClient, verify_event_token
 from pyflock import Message, SendAs, Attachment, Views, WidgetView, HtmlView, ImageView, Image, Download, Button, OpenWidgetAction, OpenBrowserAction, SendToAppAction
 import json
+import time
+from threading import Thread
 
 app = Flask(__name__)
 flock_client = FlockClient(token=BOT_TOKEN, app_id=APP_ID)
@@ -25,17 +27,45 @@ def events():
         user_id = data['userId']
         save_credentials(user_id, token)
 
-    elif event_name == 'chat.slashCommand':
+    elif event_name == 'client.slashCommand':
+        print('inside slash')
         # victor
-        instructions()
+        groups = get_groups()
+        receipient = groups['by_name']['Engineering']
+        msg = Message(to=receipient, text='floqdoc command called')
+        res = flock_client.send_chat(msg)
 
     elif event_name == 'client.flockmlAction':
         if 'actionId' in data.keys():
             if data['actionId'] == 'remind':
+                # TODO find out if i can tag someone and send message in the group
+                # TODO questions.answered
+                # TODO idea for expiring data, add a timestamp
                 # victor: implement reminder for 30 minutes
-                print("this fired!")
-                pass
-    return event_name, 200
+                # user id instead
+                groups = get_groups()
+                receipient = groups['by_name']['Engineering']
+                text_msg_to_user = "@" + data['userName'] + " reminder set for 30mins"
+
+                msg = Message(to=receipient, text=text_msg_to_user)
+                res = flock_client.send_chat(msg)
+
+                t = Thread(target = send_after_n_mins, args = (1, data))
+                t.start()
+
+    return json.dumps({'event_name': event_name})
+
+def send_after_n_mins(n, data):
+    print("\nENTERED AND PRINT HERE\n")
+    time.sleep(n*60)
+    print("\nTHIS WILL PRINT AFTER A MINUTE\n")
+    groups = get_groups()
+    receipient = groups['by_name']['Engineering']
+
+# TODO create file in json/ called remind.json
+
+
+
 
 @app.route("/floqdoc", methods=['POST'])
 def floqdoc():
@@ -53,11 +83,24 @@ def floqdoc():
             views.add_flockml(markup)
 
             groups = get_groups()
+
             for group in data['assigned_to']:
                 # send attachment to group
                 recipient = groups['by_name'][group]
                 attachment = Attachment(title='Answer or Remind', views=views)
                 button_message = Message(to = recipient, attachments = [attachment])
+                # TODO read remind.json, remind[recipient] = data['question_title']
+                remind_data = get_remind()
+
+                recipient_data = {}
+                recipient_data['asker_id'] = asker_id
+                recipient_data['asker_name'] = asker_name
+                recipient_data['ask_url'] = ask_url
+                recipient_data['question_title'] = data['question']
+                recipient_data['timestamp'] = time.mktime(datetime.datetime.utcnow().timetuple())
+                remind_data[recipient] = recipient_data
+                save_and_update_remind(remind_data)
+
                 res = flock_client.send_chat(button_message)
                 print(res)
 
