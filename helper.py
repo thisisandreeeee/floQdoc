@@ -27,7 +27,7 @@ def save_credentials(user_id, token):
 #     r = requests.post('https://api.flock.co/v1/chat.sendMessage', data=payload)
 #     print(r.status_code, r.json())
 
-def get_tokens():
+def get_tokens(user_id=None):
     tokens = json.loads(open(TOKEN_FILE).read())
     if tokens['changed']:
         for user_id, dic in tokens['users'].iteritems():
@@ -43,6 +43,8 @@ def get_tokens():
                 print(r.status_code, tokens['users'][user_id])
         tokens['changed'] = False
         open(TOKEN_FILE, 'w').write(json.dumps(tokens, indent=4))
+    if user_id:
+        return tokens['users'][user_id]
     return tokens
 
 def get_groups():
@@ -62,3 +64,12 @@ def get_groups():
     groups['by_name'] = groups_by_name
     open(GROUP_FILE, 'w').write(json.dumps(groups, indent=4))
     return groups
+
+def create_flockml(asker_id, asker_name, question_title, ask_url):
+    start = '<flockml>'
+    end = '</flockml>'
+    user = '<user userId="{}">{}</user>'.format(asker_id, asker_name)
+    question = ' asked: <b>{}</b> Would you like to '.format(question_title)
+    answer = '<action id="answer" type="openWidget" url="{}" desktopType="sidebar" mobileType="modal">answer the question</action>' + ' now or '.format(ask_url)
+    remind = '<action id="remind" type="sendEvent">be reminded later?</action>'
+    return start + user + question + answer + remind + end
