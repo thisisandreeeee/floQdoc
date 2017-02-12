@@ -67,12 +67,11 @@ def get_groups():
     return groups
 
 def get_remind():
-    reminds = json.load(open(REMIND_FILE).read())
+    reminds = json.loads(open(REMIND_FILE).read())
     return reminds
 
 def save_and_update_remind(remind_data):
-    json.dump(remind_data, open(REMIND_FILE, 'w'), indent=4)
-
+    open(REMIND_FILE, 'w').write(json.dumps(remind_data, indent=4))
 
 def create_flockml(asker_id, asker_name, question_title, ask_url):
     start = '<flockml>'
@@ -82,3 +81,17 @@ def create_flockml(asker_id, asker_name, question_title, ask_url):
     answer = '<action id="answer" type="openWidget" url="{}" desktopType="sidebar" mobileType="modal">answer the question</action>' + ' now or '.format(ask_url)
     remind = '<action id="remind" type="sendEvent">be reminded later?</action>'
     return start + user + question + answer + remind + end
+
+def create_reminder(question_title, ask_url):
+    start = '<flockml>'
+    end = '</flockml>'
+    question = 'Here is your reminder to answer: <b>{}</b>'.format(question_title)
+    cta = ' <action id="answer" type="openWidget" url="{}" desktopType="sidebar" mobileType="modal">Click here, or whatever</action>.'.format(ask_url)
+    return start + question + cta + end
+
+def create_answer(question_title, ask_url):
+    start = '<flockml>'
+    end = '</flockml>'
+    statement = 'Your question "<b>{}</b>" has been answered! '.format(question_title)
+    cta = '<action id="question" type="openWidget" url="{}" desktopType="sidebar" mobileType="modal">Click here to view</action>.'.format(ask_url)
+    return start + statement + cta + end
