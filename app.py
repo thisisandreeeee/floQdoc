@@ -38,8 +38,6 @@ def events():
     elif event_name == 'client.flockmlAction':
         if 'actionId' in data.keys():
             if data['actionId'] == 'remind':
-                # TODO questions.answered
-                # TODO idea for expiring data, add a timestamp
                 groups = get_groups()
                 receipient = groups['by_name']['Engineering']
                 text_msg_to_user = "Hey {}, we've got your back! Reminding you in 5 seconds.".format(data['userName'])
@@ -54,9 +52,8 @@ def events():
 def send_after_n_secs(data, secs=1):
     time.sleep(secs)
     groups = get_groups()
-    recipient = groups['by_name']['Engineering']
+    recipient = groups['by_name']['Human Resources']
     remind_data = json.loads(open(REMIND_FILE).read())
-    print(remind_data)
     question_title = remind_data[recipient]['question_title']
     views = Views()
     markup = create_reminder(question_title, remind_data[recipient]['ask_url'])
