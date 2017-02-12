@@ -38,34 +38,33 @@ def events():
     elif event_name == 'client.flockmlAction':
         if 'actionId' in data.keys():
             if data['actionId'] == 'remind':
-                # TODO find out if i can tag someone and send message in the group
                 # TODO questions.answered
                 # TODO idea for expiring data, add a timestamp
-                # victor: implement reminder for 30 minutes
-                # user id instead
                 groups = get_groups()
                 receipient = groups['by_name']['Engineering']
-                text_msg_to_user = "@" + data['userName'] + " reminder set for 30mins"
-
+                text_msg_to_user = "Hey {}, we've got your back! Reminding you in 5 seconds.".format(data['userName'])
                 msg = Message(to=receipient, text=text_msg_to_user)
                 res = flock_client.send_chat(msg)
 
-                t = Thread(target = send_after_n_mins, args = (1, data))
+                t = Thread(target = send_after_n_secs, args = (data,5))
                 t.start()
 
     return json.dumps({'event_name': event_name})
 
-def send_after_n_mins(n, data):
-    print("\nENTERED AND PRINT HERE\n")
-    time.sleep(n*60)
-    print("\nTHIS WILL PRINT AFTER A MINUTE\n")
+def send_after_n_secs(data, secs=1):
+    time.sleep(secs)
     groups = get_groups()
-    receipient = groups['by_name']['Engineering']
-
-# TODO create file in json/ called remind.json
-
-
-
+    recipient = groups['by_name']['Engineering']
+    remind_data = json.loads(open(REMIND_FILE).read())
+    print(remind_data)
+    question_title = remind_data[recipient]['question_title']
+    views = Views()
+    markup = create_reminder(question_title, remind_data[recipient]['ask_url'])
+    views.add_flockml(markup)
+    attachment = Attachment(title='Answer or Remind', views=views)
+    button_message = Message(to = recipient, attachments = [attachment])
+    res = flock_client.send_chat(button_message)
+    print(res)
 
 @app.route("/floqdoc", methods=['POST'])
 def floqdoc():
@@ -73,36 +72,41 @@ def floqdoc():
         data = json.loads(request.data)
         pprint(data)
         if data['event_name'] == 'question.assign':
-            question_id = data['question_id']
-            asker_id = data['asker']
+            question_id = data['q_id']
+            asker_id = data['asker_id']
             asker_obj = get_tokens(asker_id)
             asker_name = "{} {}".format(asker_obj['first_name'], asker_obj['last_name'])
-            ask_url = 'https://devweek.kyletan.me/ask/{}'.format(question_id)
+            ask_url = 'https://devweek.kyletan.me/question_detail?id={}'.format(question_id)
             views = Views()
             markup = create_flockml(asker_id, asker_name, data['question_title'], ask_url)
             views.add_flockml(markup)
-
             groups = get_groups()
-
             for group in data['assigned_to']:
                 # send attachment to group
                 recipient = groups['by_name'][group]
                 attachment = Attachment(title='Answer or Remind', views=views)
                 button_message = Message(to = recipient, attachments = [attachment])
-                # TODO read remind.json, remind[recipient] = data['question_title']
                 remind_data = get_remind()
-
                 recipient_data = {}
                 recipient_data['asker_id'] = asker_id
                 recipient_data['asker_name'] = asker_name
                 recipient_data['ask_url'] = ask_url
-                recipient_data['question_title'] = data['question']
+                recipient_data['question_title'] = data['question_title']
                 recipient_data['timestamp'] = time.mktime(datetime.datetime.utcnow().timetuple())
                 remind_data[recipient] = recipient_data
                 save_and_update_remind(remind_data)
-
                 res = flock_client.send_chat(button_message)
                 print(res)
+        elif data['event_name'] == 'question.answered':
+            q_id, question_title = data['q_id'], data['question_title']
+            ask_url = 'https://devweek.kyletan.me/question_detail?id={}'.format(q_id)
+            views = Views()
+            markup = create_answer(question_title, ask_url)
+            views.add_flockml(markup)
+            attachment = Attachment(title='Answer or Remind', views=views)
+            button_message = Message(to = data['asker_id'], attachments = [attachment])
+            res = flock_client.send_chat(button_message)
+            print(res)
 
     except ValueError, e:
         return '{} - Try json.dumps.'.format(e), 500
