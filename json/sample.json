@@ -1,0 +1,8 @@
+{
+    "question_id": "u102387d89s",
+    "question_title": "Lorem Ipsum?",
+    "assigned_to": ["Marketing", "Engineering", "Human Resources"],
+    "answered": false,
+    "timestamp": "",
+    "event_name": "question.assign"
+}
