@@ -4,5 +4,6 @@
     "assigned_to": ["Marketing", "Engineering", "Human Resources"],
     "answered": false,
     "timestamp": "",
-    "event_name": "question.assign"
+    "event_name": "question.assign",
+    "asker": "u:grb5by5xxoo7plbb"
 }
