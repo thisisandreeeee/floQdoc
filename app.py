@@ -1,53 +1,17 @@
 from __future__ import print_function
 from flask import Flask, render_template, url_for, request
 from gevent.wsgi import WSGIServer
-from settings import TOKEN_FILE, LOBBY_ID, FLOCK_PORT, ALEXA_PORT
-from creds import APP_ID, APP_SECRET, BOT_USER_ID, BOT_TOKEN
+from settings import *
+from creds import APP_ID, BOT_TOKEN
 from pprint import pprint
+from helper import *
+from instruct import instructions
+from pyflock import FlockClient, verify_event_token
+from pyflock import Message, SendAs, Attachment, Views, WidgetView, HtmlView, ImageView, Image, Download, Button, OpenWidgetAction, OpenBrowserAction, SendToAppAction
 import json
-import requests
-import os
 
 app = Flask(__name__)
-
-def _save_credentials(user_id, token):
-    tokens = {}
-    if os.path.exists(TOKEN_FILE):
-        tokens = json.loads(open(TOKEN_FILE).read())
-    if user_id not in tokens:
-        tokens['users'][user_id] = {
-            'token': token
-        }
-        tokens['changed'] = True
-        open(TOKEN_FILE, 'w').write(json.dumps(tokens, indent=4))
-
-def _send_message(recipient, message):
-    tokens = _tokens()
-    payload = {
-        'to': recipient,
-        'text': message,
-        'token': BOT_TOKEN
-    }
-    r = requests.post('https://api.flock.co/v1/chat.sendMessage', data=payload)
-    print(r.status_code, r.json())
-
-def _tokens():
-    tokens = json.loads(open(TOKEN_FILE).read())
-    if tokens['changed']:
-        for user_id, dic in tokens['users'].iteritems():
-            if len(dic.values()) == 1:
-                r = requests.get('https://api.flock.co/v1/users.getInfo?token={}'.format(dic['token']))
-                user_obj = r.json()
-                tokens['users'][user_id] = {
-                    'first_name': user_obj['firstName'],
-                    'last_name': user_obj['lastName'],
-                    'role': user_obj['role'],
-                    'token': dic['token']
-                }
-                print(r.status_code, tokens['users'][user_id])
-        tokens['changed'] = False
-        open(TOKEN_FILE, 'w').write(json.dumps(tokens, indent=4))
-    return tokens
+flock_client = FlockClient(token=BOT_TOKEN, app_id=APP_ID)
 
 @app.route("/events", methods=['POST'])
 def events():
@@ -59,24 +23,30 @@ def events():
     if event_name == 'app.install':
         token = data['token']
         user_id = data['userId']
-        _save_credentials(user_id, token)
+        save_credentials(user_id, token)
 
-    # bot events
-    elif event_name == 'chat.receiveMessage':
-        message = data['message']
-        tokens = _tokens()
-        if message['from'] in tokens: # only users who have installed the app will be added to the token file
-            if message['text'].lower() == 'ping':
-                _send_message(message['from'], 'pong')
-        else: # when the bot receives a message in the lobby
-            pass
-
-    # slash events
-    elif event_name == 'client.slashCommand':
-        if data['command'] == 'ping':
-            _send_message(LOBBY_ID, 'pong')
+    elif event_name = 'chat.slashCommand':
+        # victor
+        instructions()
 
     return event_name
+
+@app.route("/floqdoc", methods=['POST'])
+def floqdoc():
+    try:
+        data = json.loads(request.data)
+        pprint(data)
+        groups = get_groups()
+        for group in data['assigned_to']:
+            # send attachment to group
+            recipient = groups['by_name'][group]
+            simple_message = Message(to=recipient, text='This works I am so happy')
+            res = flock_client.send_chat(simple_message)
+            print(res)
+
+    except ValueError, e:
+        return '{} - Try json.dumps.'.format(e), 500
+    return 'ok'
 
 @app.route("/ready")
 def ready():
