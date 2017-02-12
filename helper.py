@@ -78,7 +78,7 @@ def create_flockml(asker_id, asker_name, question_title, ask_url):
     end = '</flockml>'
     user = '<user userId="{}">{}</user>'.format(asker_id, asker_name)
     question = ' asked: <b>{}</b> Would you like to '.format(question_title)
-    answer = '<action id="answer" type="openWidget" url="{}" desktopType="sidebar" mobileType="modal">answer the question</action>' + ' now or '.format(ask_url)
+    answer = '<action id="answer" type="openWidget" url="{}" desktopType="sidebar" mobileType="modal">answer the question</action>'.format(ask_url) + ' now or '
     remind = '<action id="remind" type="sendEvent">be reminded later?</action>'
     return start + user + question + answer + remind + end
 
